@@ -20,14 +20,14 @@ public class ParkingController {
     @Autowired
     private ParkingService parkingService;
 
-    @PreAuthorize("hasRole('USER','ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping("/entry")
     public ResponseEntity<TicketResponse> entry(@RequestBody EntryRequest req) {
         TicketResponse ticketResponse = parkingService.enterVehicle(req);
         return ResponseEntity.ok(ticketResponse);
     }
 
-    @PreAuthorize("hasRole('USER','ADMIN')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping("/exit")
     public ResponseEntity<ReceiptResponse> exit(@RequestBody ExitRequest req) {
         ReceiptResponse receiptResponse = parkingService.exitVehicle(req);

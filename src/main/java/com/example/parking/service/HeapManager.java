@@ -4,7 +4,6 @@ import com.example.parking.entity.Gate;
 import com.example.parking.entity.ParkingSlot;
 import com.example.parking.entity.SlotStatus;
 import com.example.parking.entity.VehicleType;
-import com.example.parking.repository.ParkingSlotRepository;
 import com.example.parking.util.SlotDistance;
 import org.springframework.stereotype.Service;
 
@@ -35,7 +34,8 @@ public class HeapManager {
                         .filter(slot -> slot.getType() == type && slot.getStatus() == SlotStatus.FREE)
                         .forEach(slot -> pq.offer(new SlotDistance(slot,
                                 precomputedDistance(gate, slot.getSlotNumber()))));
-                gateHeaps.get(gate).put(type, pq);
+                gateHeaps.get(gate)
+                        .put(type, pq);
             }
         }
     }

@@ -13,10 +13,10 @@ import java.util.List;
 @Component
 public class GoogleJwtRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
 
-    private final SecurityProperties props;
+    private final SecurityProperties securityProperties;
 
-    public GoogleJwtRoleConverter(SecurityProperties props) {
-        this.props = props;
+    public GoogleJwtRoleConverter(SecurityProperties securityProperties) {
+        this.securityProperties = securityProperties;
     }
 
     @Override
@@ -26,17 +26,28 @@ public class GoogleJwtRoleConverter implements Converter<Jwt, Collection<Granted
             return List.of();
         }
 
-        String normalized = email.trim().toLowerCase();
+        String normalized = email.trim()
+                .toLowerCase();
 
-        if (props.getAdminEmails().stream().map(String::toLowerCase).anyMatch(normalized::equals)) {
-            return List.of(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        if (securityProperties.getAdminEmails()
+                .stream()
+                .map(String::toLowerCase)
+                .anyMatch(normalized::equals)) {
+            // Admins get both ADMIN and USER roles
+            return List.of(
+                    new SimpleGrantedAuthority("ROLE_ADMIN"),
+                    new SimpleGrantedAuthority("ROLE_USER")
+            );
         }
 
-        if (props.getUserEmails().stream().map(String::toLowerCase).anyMatch(normalized::equals)) {
+        if (securityProperties.getUserEmails()
+                .stream()
+                .map(String::toLowerCase)
+                .anyMatch(normalized::equals)) {
             return List.of(new SimpleGrantedAuthority("ROLE_USER"));
         }
 
-        // default fallback
+        // Default fallback
         return List.of(new SimpleGrantedAuthority("ROLE_USER"));
     }
 }

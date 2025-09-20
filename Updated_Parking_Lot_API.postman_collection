@@ -1,0 +1,255 @@
+{
+	"info": {
+		"_postman_id": "4c5e3bd7-ad8d-4cb9-808e-33d4a0be53ed",
+		"name": "Parking Lot API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "2813774"
+	},
+	"item": [
+		{
+			"name": "Parking",
+			"item": [
+				{
+					"name": "Entry",
+					"request": {
+						"auth": {
+							"type": "basic"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"plateNo\": \"MH12AB1240\",\n  \"type\": \"TRUCK\",\n  \"entryGate\": \"GATE_2\",\n  \"ownerName\": \"Raj\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/user/parking/entry",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"user",
+								"parking",
+								"entry"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Exit",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"ticketId\": 1,\n  \"paymentMethod\": \"UPI\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/user/parking/exit",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"user",
+								"parking",
+								"exit"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Postman collection for Users to Park & Retrieve their Vehicle."
+		},
+		{
+			"name": "Pricing Rules",
+			"item": [
+				{
+					"name": "Get All Pricings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/admin/pricing",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"admin",
+								"pricing"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Or Create the Pricings",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"vehicleType\": \"CAR\",\r\n    \"freeMinutes\": 90,\r\n    \"ratePerHour\": 50\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/admin/pricing",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"admin",
+								"pricing"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Postman collection for Admins to update Pricing Rules for different type of Vehicles."
+		},
+		{
+			"name": "Slots",
+			"item": [
+				{
+					"name": "Get All Slots",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/admin/slots",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"admin",
+								"slots"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Slots",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"slotNumber\": \"F4-10\",\r\n    \"floorNumber\": 4,\r\n    \"type\": \"CAR\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/admin/slots",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"admin",
+								"slots"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Slots",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"slotNumber\": \"F4-10\",\r\n  \"floorNumber\": 4,\r\n  \"type\": \"TRUCK\",\r\n  \"status\": \"FREE\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/admin/slots/{}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"admin",
+								"slots",
+								"{}"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": null,
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Slot",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/api/admin/slots/{id}",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"api",
+								"admin",
+								"slots",
+								"{id}"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Postman collection for Admins to Add or Remove the Parking Slots."
+		}
+	]
+}

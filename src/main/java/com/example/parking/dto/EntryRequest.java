@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class EntryRequest {
     private String plateNo;
-    private VehicleType type;
+    private VehicleType vehicleType;
     private String entryGate;
     private String ownerName;
 }

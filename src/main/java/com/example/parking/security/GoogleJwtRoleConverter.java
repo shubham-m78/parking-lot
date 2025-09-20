@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import java.util.Collection;
 import java.util.List;
 
+import static com.example.parking.constants.ApplicationConstants.*;
+
 @Component
 public class GoogleJwtRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
 
@@ -21,7 +23,7 @@ public class GoogleJwtRoleConverter implements Converter<Jwt, Collection<Granted
 
     @Override
     public Collection<GrantedAuthority> convert(Jwt jwt) {
-        String email = jwt.getClaimAsString("email");
+        String email = jwt.getClaimAsString(EMAIL);
         if (email == null) {
             return List.of();
         }
@@ -35,8 +37,8 @@ public class GoogleJwtRoleConverter implements Converter<Jwt, Collection<Granted
                 .anyMatch(normalized::equals)) {
             // Admins get both ADMIN and USER roles
             return List.of(
-                    new SimpleGrantedAuthority("ROLE_ADMIN"),
-                    new SimpleGrantedAuthority("ROLE_USER")
+                    new SimpleGrantedAuthority(ROLE_ADMIN),
+                    new SimpleGrantedAuthority(ROLE_USER)
             );
         }
 
@@ -44,10 +46,10 @@ public class GoogleJwtRoleConverter implements Converter<Jwt, Collection<Granted
                 .stream()
                 .map(String::toLowerCase)
                 .anyMatch(normalized::equals)) {
-            return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+            return List.of(new SimpleGrantedAuthority(ROLE_USER));
         }
 
         // Default fallback
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        return List.of(new SimpleGrantedAuthority(ROLE_USER));
     }
 }

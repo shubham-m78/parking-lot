@@ -20,7 +20,7 @@ class ParkingServiceIntegrationTest {
     void testEntryAndExit() {
         EntryRequest req = new EntryRequest();
         req.setPlateNo("MH12AB1234");
-        req.setType(VehicleType.CAR);
+        req.setVehicleType(VehicleType.CAR);
         req.setEntryGate("GATE_1");
         req.setOwnerName("Test Owner");
 

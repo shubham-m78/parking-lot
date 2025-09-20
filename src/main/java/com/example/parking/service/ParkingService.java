@@ -26,60 +26,64 @@ import java.util.concurrent.PriorityBlockingQueue;
 @Service
 public class ParkingService {
 
-    private final ParkingSlotRepository slotRepo;
-    private final TicketRepository ticketRepo;
-    private final VehicleRepository vehicleRepo;
-    private final PaymentRepository paymentRepo;
+    private final ParkingSlotRepository parkingSlotRepository;
+    private final TicketRepository ticketRepository;
+    private final VehicleRepository vehicleRepository;
+    private final PaymentRepository paymentRepository;
     private final Map<Gate, Map<VehicleType, PriorityBlockingQueue<SlotDistance>>> gateHeaps;
     private final Map<String, Integer> distanceMap;
     private final PricingStrategy pricingStrategy;
 
     @Autowired
-    public ParkingService(ParkingSlotRepository slotRepo, TicketRepository ticketRepo,
-                          VehicleRepository vehicleRepo, PaymentRepository paymentRepo, Map<Gate, Map<VehicleType, PriorityBlockingQueue<SlotDistance>>> gateHeaps, Map<String, Integer> distanceMap, PricingStrategy pricingStrategy) {
-        this.slotRepo = slotRepo;
-        this.ticketRepo = ticketRepo;
-        this.vehicleRepo = vehicleRepo;
-        this.paymentRepo = paymentRepo;
+    public ParkingService(ParkingSlotRepository parkingSlotRepository, TicketRepository ticketRepository,
+                          VehicleRepository vehicleRepository, PaymentRepository paymentRepository, Map<Gate, Map<VehicleType, PriorityBlockingQueue<SlotDistance>>> gateHeaps, Map<String, Integer> distanceMap, PricingStrategy pricingStrategy) {
+        this.parkingSlotRepository = parkingSlotRepository;
+        this.ticketRepository = ticketRepository;
+        this.vehicleRepository = vehicleRepository;
+        this.paymentRepository = paymentRepository;
         this.gateHeaps = gateHeaps;
         this.distanceMap = distanceMap;
         this.pricingStrategy = pricingStrategy;
     }
 
     @Transactional
-    public TicketResponse enterVehicle(EntryRequest req) {
+    public TicketResponse enterVehicle(EntryRequest entryRequest) {
         // 1. Duplicate check
-        Optional<Ticket> active = ticketRepo.findActiveTicketByPlate(req.getPlateNo());
+        Optional<Ticket> active = ticketRepository.findActiveTicketByPlate(entryRequest.getPlateNo());
         if (active.isPresent()) {
             throw new ParkingException("Vehicle already inside", 409); // 409 Conflict
         }
 
         // 2. Find and lock a free slot (pessimistic)
-        Gate entryGate = Gate.valueOf(req.getEntryGate());
-        ParkingSlot parkingSlot = allocateSlot(entryGate, req.getType());
+        Gate entryGate = Gate.valueOf(entryRequest.getEntryGate());
+        ParkingSlot parkingSlot = allocateSlot(entryGate, entryRequest.getVehicleType());
 
         if (Objects.isNull(parkingSlot)) {
-            throw new ParkingException("Parking full for vehicle type: " + req.getType(), 409);
+            throw new ParkingException("Parking full for vehicle type: " + entryRequest.getVehicleType(), 409);
         }
 
         // 3. Create or fetch vehicle
-        Vehicle vehicle = vehicleRepo.findByPlateNo(req.getPlateNo())
-                .orElseGet(() -> vehicleRepo.save(new Vehicle(req.getPlateNo(), req.getType(), req.getOwnerName())));
+        Vehicle vehicle = vehicleRepository.findByPlateNo(entryRequest.getPlateNo())
+                .orElseGet(() -> vehicleRepository.save(new Vehicle(entryRequest.getPlateNo(), entryRequest.getVehicleType(), entryRequest.getOwnerName())));
 
-        // 4. Create ticket
+        // 4. Create & Return the ticket
+        return createTicket(vehicle, parkingSlot);
+    }
+
+    private TicketResponse createTicket(Vehicle vehicle, ParkingSlot parkingSlot) {
         Ticket ticket = new Ticket();
         ticket.setVehicle(vehicle);
         ticket.setSlot(parkingSlot);
         ticket.setEntryTime(LocalDateTime.now());
         ticket.setStatus(TicketStatus.ACTIVE);
-        ticketRepo.save(ticket);
+        ticketRepository.save(ticket);
 
         return new TicketResponse(ticket.getId(), vehicle.getPlateNo(), parkingSlot.getSlotNumber(), ticket.getEntryTime());
     }
 
     @Transactional
-    public ReceiptResponse exitVehicle(ExitRequest req) {
-        Ticket ticket = ticketRepo.findById(req.getTicketId())
+    public ReceiptResponse exitVehicle(ExitRequest exitRequest) {
+        Ticket ticket = ticketRepository.findById(exitRequest.getTicketId())
                 .orElseThrow(() -> new ParkingException("Ticket not found", 400));
         if (ticket.getStatus() != TicketStatus.ACTIVE) {
             throw new ParkingException("Ticket not active", 400);
@@ -87,8 +91,10 @@ public class ParkingService {
 
         // Calculate an amount based on Pricing Rules
         LocalDateTime now = LocalDateTime.now();
-        long minutes = Duration.between(ticket.getEntryTime(), now).toMinutes();
-        BigDecimal amount = pricingStrategy.calculateFare(ticket.getVehicle().getType(), minutes);
+        long minutes = Duration.between(ticket.getEntryTime(), now)
+                .toMinutes();
+        BigDecimal amount = pricingStrategy.calculateFare(ticket.getVehicle()
+                .getType(), minutes);
 
         // Simulate payment (synchronous)
         Payment payment = new Payment();
@@ -96,12 +102,12 @@ public class ParkingService {
         payment.setAmount(amount);
         payment.setTimestamp(LocalDateTime.now());
         payment.setStatus(PaymentStatus.SUCCESS);
-        paymentRepo.save(payment);
+        paymentRepository.save(payment);
 
         // Update ticket and free slot
         ticket.setExitTime(now);
         ticket.setStatus(TicketStatus.CLOSED);
-        ticketRepo.save(ticket);
+        ticketRepository.save(ticket);
 
         releaseSlot(ticket);
 
@@ -118,7 +124,7 @@ public class ParkingService {
     /**
      * Allocates nearest free slot for given gate & vehicle type
      */
-    public synchronized ParkingSlot allocateSlot(Gate gate, VehicleType type) {
+    private synchronized ParkingSlot allocateSlot(Gate gate, VehicleType type) {
         PriorityBlockingQueue<SlotDistance> gateHeap = gateHeaps.get(gate)
                 .get(type);
 
@@ -127,11 +133,11 @@ public class ParkingService {
             ParkingSlot parkingSlot = slotDistance.getSlot();
 
             // Double-check status in DB
-            Optional<ParkingSlot> fresh = slotRepo.findById(parkingSlot.getId());
+            Optional<ParkingSlot> fresh = parkingSlotRepository.findById(parkingSlot.getId());
             if (fresh.isPresent() && fresh.get()
                     .getStatus() == SlotStatus.FREE) {
                 parkingSlot.setStatus(SlotStatus.OCCUPIED);
-                slotRepo.save(parkingSlot);
+                parkingSlotRepository.save(parkingSlot);
 
                 // Remove from all heaps (so other gates won't allocate it)
                 removeFromOtherHeaps(parkingSlot);
@@ -144,23 +150,23 @@ public class ParkingService {
     /**
      * Remove slot from all heaps after allocation
      */
-    private void removeFromOtherHeaps(ParkingSlot slot) {
+    private void removeFromOtherHeaps(ParkingSlot parkingSlot) {
         for (Gate gate : Gate.values()) {
-            PriorityBlockingQueue<SlotDistance> pq = gateHeaps.get(gate)
-                    .get(slot.getType());
-            pq.removeIf(sd -> sd.getSlot()
+            PriorityBlockingQueue<SlotDistance> gateHeap = gateHeaps.get(gate)
+                    .get(parkingSlot.getType());
+            gateHeap.removeIf(slotDistance -> slotDistance.getSlot()
                     .getId()
-                    .equals(slot.getId()));
+                    .equals(parkingSlot.getId()));
         }
     }
 
     /**
      * Frees a slot and re-adds to all gate heaps
      */
-    public synchronized void releaseSlot(Ticket ticket) {
+    private synchronized void releaseSlot(Ticket ticket) {
         ParkingSlot parkingSlot = ticket.getSlot();
         parkingSlot.setStatus(SlotStatus.FREE);
-        slotRepo.save(parkingSlot);
+        parkingSlotRepository.save(parkingSlot);
 
         for (Gate gate : Gate.values()) {
             int distance = distanceMap.getOrDefault(gate.name() + "_" + parkingSlot.getSlotNumber(), Integer.MAX_VALUE);

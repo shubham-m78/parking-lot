@@ -7,8 +7,9 @@ import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
-public class ExitRequest {
+public class FareResponse {
     private Long ticketId;
-    private String paymentMethod;
+    private String plateNo;
+    private long durationMinutes;
     private BigDecimal amount;
 }

@@ -41,16 +41,15 @@ public class DataInitializer {
             // 1. Create a set of slots & pricing rules
             initializeParkingSlots(parkingSlotRepository);
 
-            pricingRuleRepository.save(new PricingRule(VehicleType.CAR, 120, 40));
-            pricingRuleRepository.save(new PricingRule(VehicleType.BIKE, 60, 20));
-            pricingRuleRepository.save(new PricingRule(VehicleType.TRUCK, 60, 80));
+            pricingRuleRepository.save(new PricingRule(VehicleType.BIKE, 1, 10));
+            pricingRuleRepository.save(new PricingRule(VehicleType.CAR, 1, 20));
+            pricingRuleRepository.save(new PricingRule(VehicleType.TRUCK, 1, 30));
 
 
             // 2. Fetch all slots
             List<ParkingSlot> slots = parkingSlotRepository.findAll();
 
             // 3. Build a heap per gate
-//            heapManager.rebuildHeaps(parkingSlotRepository.findAll());
             for (Gate gate : Gate.values()) {
                 gateHeaps.putIfAbsent(gate, new ConcurrentHashMap<>());
                 for (VehicleType type : VehicleType.values()) {

@@ -10,8 +10,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class ReceiptResponse {
     private Long ticketId;
-    private BigDecimal amount;
-    private String paymentStatus;
+    private String plateNo;
+    private String slotNumber;
     private LocalDateTime exitTime;
+    private String paymentStatus;
+    private BigDecimal paidAmount;
+    private BigDecimal remainingChange;
     private boolean slotFreed;
+    private String message;
 }

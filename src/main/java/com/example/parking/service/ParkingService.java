@@ -1,9 +1,6 @@
 package com.example.parking.service;
 
-import com.example.parking.dto.EntryRequest;
-import com.example.parking.dto.ExitRequest;
-import com.example.parking.dto.ReceiptResponse;
-import com.example.parking.dto.TicketResponse;
+import com.example.parking.dto.*;
 import com.example.parking.entity.*;
 import com.example.parking.exception.ParkingException;
 import com.example.parking.repository.ParkingSlotRepository;
@@ -81,10 +78,10 @@ public class ParkingService {
         return new TicketResponse(ticket.getId(), vehicle.getPlateNo(), parkingSlot.getSlotNumber(), ticket.getEntryTime());
     }
 
-    @Transactional
-    public ReceiptResponse exitVehicle(ExitRequest exitRequest) {
-        Ticket ticket = ticketRepository.findById(exitRequest.getTicketId())
+    public FareResponse calculateFare(Long ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new ParkingException("Ticket not found", 400));
+
         if (ticket.getStatus() != TicketStatus.ACTIVE) {
             throw new ParkingException("Ticket not active", 400);
         }
@@ -96,16 +93,51 @@ public class ParkingService {
         BigDecimal amount = pricingStrategy.calculateFare(ticket.getVehicle()
                 .getType(), minutes);
 
-        // Simulate payment (synchronous)
+        FareResponse fareResponse = new FareResponse();
+        fareResponse.setTicketId(ticket.getId());
+        fareResponse.setPlateNo(ticket.getVehicle()
+                .getPlateNo());
+        fareResponse.setDurationMinutes(minutes);
+        fareResponse.setAmount(amount);
+
+        // Save the amount to be paid against the ticket with pending status
         Payment payment = new Payment();
         payment.setTicket(ticket);
         payment.setAmount(amount);
         payment.setTimestamp(LocalDateTime.now());
+        payment.setStatus(PaymentStatus.PENDING);
+        paymentRepository.save(payment);
+
+        return fareResponse;
+    }
+
+    @Transactional
+    public ReceiptResponse exitVehicle(ExitRequest exitRequest) {
+        Ticket ticket = ticketRepository.findById(exitRequest.getTicketId())
+                .orElseThrow(() -> new ParkingException("Ticket not found", 400));
+
+        if (ticket.getStatus() != TicketStatus.ACTIVE) {
+            throw new ParkingException("Ticket not active", 400);
+        }
+
+        // Find existing Payment row for this ticket
+        Payment payment = paymentRepository.findByTicketId(exitRequest.getTicketId())
+                .orElseThrow(() -> new ParkingException("No pending payment found for this ticket", 400));
+
+
+        // Validate the amount
+        if (exitRequest.getAmount()
+                .compareTo(payment.getAmount()) < 0) {
+            throw new ParkingException("Insufficient payment. Required: " + payment.getAmount(), 400);
+        }
+
+        // Update payment row to SUCCESS
         payment.setStatus(PaymentStatus.SUCCESS);
+        payment.setTimestamp(LocalDateTime.now());
         paymentRepository.save(payment);
 
         // Update ticket and free slot
-        ticket.setExitTime(now);
+        ticket.setExitTime(LocalDateTime.now());
         ticket.setStatus(TicketStatus.CLOSED);
         ticketRepository.save(ticket);
 
@@ -113,11 +145,19 @@ public class ParkingService {
 
         ReceiptResponse receiptResponse = new ReceiptResponse();
         receiptResponse.setTicketId(ticket.getId());
-        receiptResponse.setAmount(amount);
-        receiptResponse.setExitTime(now);
+        receiptResponse.setPlateNo(ticket.getVehicle()
+                .getPlateNo());
+        receiptResponse.setSlotNumber(ticket.getSlot()
+                .getSlotNumber());
+        receiptResponse.setExitTime(LocalDateTime.now());
         receiptResponse.setPaymentStatus(payment.getStatus()
                 .name());
+        receiptResponse.setPaidAmount(exitRequest.getAmount());
+        receiptResponse.setRemainingChange(exitRequest.getAmount()
+                .subtract(payment.getAmount()));
         receiptResponse.setSlotFreed(true);
+        receiptResponse.setMessage("Exit successful, visit again. Thank you!");
+
         return receiptResponse;
     }
 
